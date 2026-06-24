@@ -1,9 +1,6 @@
 @page "/kopen"
 @inject PaymentService PaymentSvc
 @inject AuthenticationStateProvider Auth
-@inject NavigationManager Nav
-@inject ApplicationDbContext Db
-@using Microsoft.EntityFrameworkCore
 
 <PageTitle>Kopen — Chrono Trials</PageTitle>
 
@@ -143,8 +140,7 @@
             _userName = auth.User.Identity.Name ?? "";
             _userId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
 
-            _alreadyOwned = int.TryParse(_userId, out var parsedUserId)
-                && await Db.Users.AnyAsync(u => u.Id == parsedUserId && u.Purchased);
+            _alreadyOwned = await PaymentSvc.HasPurchasedAsync(_userId);
         }
     }
 
@@ -167,11 +163,14 @@
     async Task SimulatePaid()
     {
         _loading = true;
+        _error = "";
         var success = await PaymentSvc.CompletePaymentAsync(_orderId, _userId);
         if (success)
         {
+            // Toon het successcherm. _alreadyOwned blijft hier bewust false,
+            // anders zou de _alreadyOwned-check (die in de markup vóór de
+            // succesmelding staat) het succescherm direct overslaan.
             _paymentStep = 2;
-            Nav.NavigateTo("/game");
         }
         else
             _error = "Er ging iets mis. Probeer opnieuw.";

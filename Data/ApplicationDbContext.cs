@@ -28,5 +28,20 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(x => x.Username).IsUnique();
             entity.HasIndex(x => x.Email).IsUnique();
         });
+
+        modelBuilder.Entity<Purchase>(entity =>
+        {
+            entity.ToTable("aankopen");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            entity.Property(x => x.OrderId).HasColumnName("order_id").IsRequired();
+            entity.Property(x => x.Status).HasColumnName("status").IsRequired().HasDefaultValue("pending");
+            entity.Property(x => x.Amount).HasColumnName("amount").HasDefaultValue(4.99m);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            entity.HasIndex(x => x.UserId);
+            entity.HasIndex(x => x.OrderId).IsUnique();
+        });
     }
 }

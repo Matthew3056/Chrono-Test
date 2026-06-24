@@ -150,6 +150,27 @@ app.MapGet("/api/leaderboard", async (LeaderboardService lb) =>
     return Results.Ok(entries);
 });
 
+// Downloadendpoint voor de game. Alleen gebruikers die de game gekocht
+// hebben (Purchased == true in de database) krijgen het bestand. Het
+// bestand staat buiten wwwroot (in GameFiles/) zodat het niet via een
+// directe statische URL te omzeilen is.
+app.MapGet("/api/download/game", async (HttpContext http, ApplicationDbContext db, IWebHostEnvironment env) =>
+{
+    var userIdClaim = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!int.TryParse(userIdClaim, out var userId))
+        return Results.Unauthorized();
+
+    var hasAccess = await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.Purchased);
+    if (!hasAccess)
+        return Results.Unauthorized();
+
+    var filePath = Path.Combine(env.ContentRootPath, "GameFiles", "ChronoTrials.zip");
+    if (!File.Exists(filePath))
+        return Results.NotFound("Het downloadbestand is nog niet beschikbaar. Zet ChronoTrials.zip in de map GameFiles/.");
+
+    return Results.File(filePath, "application/zip", "ChronoTrials.zip");
+}).RequireAuthorization();
+
 app.MapRazorPages();
 
 app.MapRazorComponents<ChronoTrial.Pages.App>()
